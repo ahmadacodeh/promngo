@@ -1,0 +1,2 @@
+# promngo
+compny mangment tech 
