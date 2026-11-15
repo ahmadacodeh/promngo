@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "import",
+    "unicorn"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "no-console": "off",
+    "typescript/no-explicit-any": "warn",
+    "typescript/consistent-type-imports": "off",
+    "unicorn/no-null": "off",
+    "import/no-unassigned-import": "off",
+    "typescript/no-extraneous-class": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "import/no-named-as-default-member": "off"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "storage"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "test/**/*.ts",
+        "**/*.spec.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+/* Base styles. RTL-first: logical properties only (no left/right). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--lh-body);
+  color: var(--ink);
+  background: var(--canvas);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-weight: 400;
+  min-block-size: 100vh;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+h1, h2, h3, h4, p { margin-block: 0; }
+h1 { font-size: var(--fs-xl); color: var(--forest); line-height: 1.3; font-weight: 700; }
+h2 { font-size: var(--fs-lg); color: var(--forest); line-height: 1.4; font-weight: 700; }
+h3 { font-size: var(--fs-md); color: var(--forest); font-weight: 700; }
+p { color: #40544d; }
+a { color: var(--emerald); text-underline-offset: 3px; }
+a:hover { color: var(--emerald-hover); }
+ul, ol { margin-block: 0; padding-inline-start: var(--sp-5); }
+img, svg { max-inline-size: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+table { border-collapse: collapse; inline-size: 100%; }
+code, .mono { font-family: var(--font-mono); direction: ltr; unicode-bidi: isolate; }
+[dir='ltr'], .ltr { direction: ltr; unicode-bidi: isolate; text-align: start; }
+
+/* Keyboard focus is always visible (never removed without a replacement). */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--sp-3);
+  inset-block-start: -100px;
+  z-index: 999;
+  background: var(--forest);
+  color: var(--white);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-sm);
+}
+.skip-link:focus { inset-block-start: var(--sp-3); }
+
+/* Page transition (identity: fade + 8px rise, 200ms) */
+.page-enter-active, .page-leave-active { transition: opacity var(--dur-base) ease, transform var(--dur-base) var(--ease); }
+.page-enter-from { opacity: 0; transform: translateY(var(--rise)); }
+.page-leave-to { opacity: 0; }
+
+/* Reduced motion: no animation or transition anywhere. JS animations use useReducedMotion() too. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

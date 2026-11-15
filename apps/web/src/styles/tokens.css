@@ -1,0 +1,80 @@
+/*
+ * PROMANGO design tokens — source of truth: design/brand/identity.md (Figma wins over the presentation file).
+ * Contrast of every text/background pair used by components is asserted in src/styles/tokens.test.ts.
+ */
+:root {
+  /* Brand (Figma) */
+  --forest: #123b35;
+  --emerald: #16845b;
+  --emerald-ink: #176b52; /* small text on mint / soft backgrounds (>= 4.5:1) */
+  --emerald-hover: #11714d;
+  --mint: #dff3e9;
+  --mango: #f28c28; /* emphasis & important alerts only; never small text */
+  --mango-soft: #fff0df;
+  --mango-ink: #8f4d06;
+  --canvas: #f8faf9;
+  --surface: #ffffff;
+  --ink: #172a26;
+  --muted: #5d6e68;
+  --line: #dce5df;
+  --red: #b94c43;
+  --red-ink: #9f3a32;
+  --red-soft: #fbe9e7;
+  --blue: #426c91;
+  --blue-ink: #355a7b;
+  --blue-soft: #eaf0fa;
+
+  /* Derived */
+  --emerald-soft: #e6f2ec;
+  --row-line: #edf1ed;
+  --sidebar-text: #d7e9df;
+  --sidebar-hover: #ffffff14;
+  --sidebar-selected: #ffffff24;
+  --overlay: #0b1b17a6;
+
+  /* Typography (Cairo self-hosted; system fallbacks) */
+  --font-sans: 'Cairo', Tahoma, 'Segoe UI', Arial, sans-serif;
+  --font-mono: Consolas, 'Courier New', monospace;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;
+  --lh-body: 1.7;
+
+  /* Shape: cards 12–16px */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px #102d1d0a, 0 6px 18px #102d1d08;
+  --shadow-pop: 0 18px 55px #0c30221f;
+  --shadow-focus: 0 0 0 3px #16845b33;
+
+  /* Spacing (4px scale) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* Layout (Figma 1440x900: sidebar 232 + content 1208) */
+  --sidebar-w: 232px;
+  --topbar-h: 60px;
+  --content-max: 1208px;
+
+  /* Motion: calm — 200ms ease, 8px rise */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 300ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --rise: 8px;
+
+  --z-sidebar: 30;
+  --z-topbar: 20;
+  --z-modal: 100;
+  --z-toast: 120;
+}
