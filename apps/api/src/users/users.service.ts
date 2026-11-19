@@ -6,6 +6,7 @@ import { escapeLike, paged, resolvePage, type Paged } from '../common/pagination
 import { generateTemporaryPassword } from '../common/temp-password.js';
 import { USER_DTO_SELECT, loadUserDto, rowToUserDto, type UserDto } from '../common/user-dto.js';
 import { SessionsService } from '../auth/sessions.service.js';
+import { recordAudit } from '../work/audit.js';
 import type { CreateUserDto, ListUsersQuery, UpdateUserDto } from './dto.js';
 
 const uniqueViolation = (e: unknown): boolean => {
@@ -62,6 +63,8 @@ export class UsersService {
           )
         )[0];
         await m.query(`SELECT auth_set_password($1, $2, TRUE)`, [row.id, temporaryPassword]); // التجزئة داخل PostgreSQL
+        // FR-012: إدارة المستخدمين في السجل. لا كلمة مرور ولا بريد: المعرّف يكفي، ومفاتيح الأسرار تُحذف تلقائيًا من meta.
+        await recordAudit(m, { companyId: actor.companyId, entity: 'USER', entityId: row.id, type: 'USER_CREATED', actorId: actor.id, meta: { fullName: dto.fullName, role: dto.role, canCreateProjects: dto.canCreateProjects ?? false } });
         return row.id as string;
       });
     } catch (e) {
@@ -106,6 +109,15 @@ export class UsersService {
       params.push(id, actor.companyId);
       await m.query(`UPDATE users SET ${sets.join(', ')} WHERE id = $${params.length - 1} AND company_id = $${params.length}`, params);
       deactivated = dto.isActive === false && target.is_active;
+      const changed = (['fullName', 'role', 'canCreateProjects', 'isActive', 'specializationId'] as const).filter((k) => dto[k] !== undefined);
+      await recordAudit(m, {
+        companyId: actor.companyId, entity: 'USER', entityId: id, type: 'USER_UPDATED', actorId: actor.id,
+        meta: {
+          fields: changed,
+          ...(dto.role !== undefined && dto.role !== target.role ? { role: { from: target.role, to: dto.role } } : {}),
+          ...(dto.isActive !== undefined && dto.isActive !== target.is_active ? { isActive: { from: target.is_active, to: dto.isActive } } : {}),
+        },
+      });
     });
     if (deactivated) await this.sessions.revokeAll(id);
     return this.get(actor, id);
@@ -119,6 +131,7 @@ export class UsersService {
       await m.query(`SELECT auth_set_password($1, $2, TRUE)`, [id, temporaryPassword]);
       // رفع الحجب: إعادة التعيين هي العلاج الموثق لقفل المحاولات.
       await m.query(`DELETE FROM login_attempts WHERE email_key = $1 AND NOT succeeded`, [String(target.email).toLowerCase()]);
+      await recordAudit(m, { companyId: actor.companyId, entity: 'USER', entityId: id, type: 'USER_PASSWORD_RESET', actorId: actor.id });
     });
     await this.sessions.revokeAll(id);
     return { temporaryPassword };

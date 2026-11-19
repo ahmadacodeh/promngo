@@ -11,6 +11,13 @@ npm run start:dev                        # http://localhost:3000/health
 ```
 `DATABASE_URL` لقاعدة التطوير، و`TEST_DATABASE_URL` لقاعدة اسمها ينتهي بـ `_test`. الخادم يرفض الإقلاع إن غابت الأسرار أو ضعفت.
 
+## بيانات التطوير والمرفقات
+```bash
+SEED_PASSWORD='<كلمة مرور قوية>' npm run seed:dev            # شركتان × (6 مستخدمين + 3 مشاريع + 15 مهمة) بتسليمات ومراجعات ومرفقات حقيقية
+SEED_PASSWORD='<...>' npm run seed:dev -- --reset            # يعيد بناء شركتي seed فقط (ويحذف ملفاتهما) ولا يمس غيرهما
+```
+بلا `SEED_PASSWORD` تُولَّد كلمة عشوائية وتُطبع مرة واحدة. الأمر يرفض `NODE_ENV=production`. مرفقات التسليم تُخزَّن تحت `UPLOAD_DIR` (الافتراضي `./storage/uploads`، مستثنى من Git)؛ يجب أن يكون المجلد قابلًا للكتابة لمستخدم الخادم، وللنسخ الاحتياطي معه مع قاعدة البيانات (انظر T18 في `docs/backlog.md` للمرفقات اليتيمة).
+
 ## البنية
 - `src/app.module.ts` جذر الوحدات؛ `src/app.factory.ts` (`createApp`) يضبط helmet/CORS/pipes/filter ويُستخدم في `main.ts` والاختبارات بالإعداد نفسه.
 - `src/auth` المصادقة والجلسات وحد المحاولات؛ `src/common` الحراس (`JwtAuthGuard` ثم `RolesGuard` عامان)، المرشح، التحقق، الرسائل العربية؛ `src/database` الـ migrations.

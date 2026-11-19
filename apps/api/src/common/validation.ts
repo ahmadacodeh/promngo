@@ -27,6 +27,8 @@ function constraintMessage(constraint: string, field: string): string {
     case 'min':
     case 'max':
       return `قيمة «${l}» غير صالحة (رقم ضمن الحدود المسموحة).`;
+    case 'isCalendarDate':
+      return `«${l}» ليس تاريخًا صحيحًا؛ استخدم الصيغة YYYY-MM-DD (مثال: 2026-12-31).`;
     case 'isBoolean':
       return `«${l}» يجب أن تكون نعم أو لا.`;
     case 'whitelistValidation':

@@ -3,6 +3,7 @@
  * لا قيم سرية افتراضية هنا إطلاقًا.
  */
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 export interface AppEnv {
   NODE_ENV: 'development' | 'test' | 'production';
@@ -15,6 +16,8 @@ export interface AppEnv {
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
   BILLING_ENCRYPTION_KEY: string;
+  /** جذر تخزين مرفقات التسليم (مسار مطلق). التخزين: <UPLOAD_DIR>/<companyId>/<taskId>/<uuid>.<ext>. */
+  UPLOAD_DIR: string;
 }
 
 const MIN_SECRET_LENGTH = 32;
@@ -77,6 +80,7 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     JWT_ACCESS_SECRET: str('JWT_ACCESS_SECRET'),
     JWT_REFRESH_SECRET: str('JWT_REFRESH_SECRET'),
     BILLING_ENCRYPTION_KEY: str('BILLING_ENCRYPTION_KEY'),
+    UPLOAD_DIR: resolve(str('UPLOAD_DIR') || './storage/uploads'),
   };
 }
 

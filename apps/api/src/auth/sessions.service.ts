@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { ApiException } from '../common/api-exception.js';
 import { REFRESH_TTL_SECONDS, TokensService, safeEqualHex, sha256Hex } from './tokens.service.js';
+import { rowsOf } from '../common/db.js';
 
 export interface SessionMeta {
   ip?: string | undefined;
@@ -96,7 +97,7 @@ export class SessionsService {
         `UPDATE refresh_sessions SET revoked_at = NOW(), replaced_by = $2 WHERE id = $1 AND revoked_at IS NULL RETURNING id`,
         [s.id, newId],
       );
-      const updated = Array.isArray(upd[0]) ? upd[0] : upd; // pg يعيد [rows, count] في UPDATE ... RETURNING عبر TypeORM
+      const updated = rowsOf(upd);
       if (updated.length === 0) {
         await qr.rollbackTransaction();
         await this.revokeAll(s.user_id);

@@ -4,9 +4,14 @@ import { AuthCoreModule } from './auth/auth-core.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ENV_TOKEN, validateEnv, type AppEnv } from './config/env.js';
 import { CompaniesModule } from './companies/companies.module.js';
+import { DeliveryModule } from './delivery/delivery.module.js';
+import { DependenciesModule } from './dependencies/dependencies.module.js';
 import { buildTypeOrmOptions } from './database/data-source.js';
 import { HealthModule } from './health/health.controller.js';
+import { InsightsModule } from './insights/insights.module.js';
+import { ProjectsModule } from './projects/projects.module.js';
 import { SpecializationsModule } from './specializations/specializations.module.js';
+import { TasksModule } from './tasks/tasks.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Global()
@@ -33,6 +38,11 @@ export class EnvModule {}
     UsersModule,
     CompaniesModule,
     SpecializationsModule,
+    ProjectsModule,
+    TasksModule,
+    DependenciesModule,
+    DeliveryModule,
+    InsightsModule,
   ],
 })
 export class AppModule {}
