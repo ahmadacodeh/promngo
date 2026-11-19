@@ -30,3 +30,4 @@ _(يُسجَّل هنا اسم الملف وتاريخه عند كل إرسال.
 - 2026-11-14: `PROMANGO_backup_2026-11-14_a.zip` (بعد B1a: 22 وحدة + 49 E2E ناجحة؛ بلا `.env` ولا node_modules)
 - 2026-11-15: `PROMANGO_backup_2026-11-15_a.zip` (بعد B1b جزء 1 + J2/J3: خادم 24+70، واجهة 87+39؛ بلا `.env` ولا node_modules ولا dist)
 - 2026-11-19: `PROMANGO_backup_2026-11-19_a.zip` (بعد B2 الخادم: 52 وحدة + 233 E2E؛ واجهة 87 وحدة؛ مع ملف التقدم 63.9٪ وبرومت المتابعة؛ بلا `.env` ولا node_modules ولا dist ولا storage)
+- 2026-11-19: دُفع إلى GitHub (`ahmadacodeh/promngo`، فرع main) — commit `6a50518` ثم commit تصحيح الوثائق
