@@ -178,7 +178,9 @@ test.describe('تغيير كلمة المرور الإلزامي (مستخدم �
     await conf.fill(fresh);
     await page.getByRole('button', { name: 'حفظ كلمة المرور' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText(u.email)).toBeVisible();
+    // دخل بهوية المستخدم الجديد (موظف): لوحة الموظف، واسمه في بطاقة المستخدم (الشريط الجانبي مطوي على الجوال).
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('مهامي اليوم');
+    await expect(page.locator('.side__name')).toHaveText('مستخدم اختبار E2E');
 
     await page.getByRole('button', { name: 'تسجيل الخروج' }).click();
     await expect(page).toHaveURL(/\/login/);

@@ -33,7 +33,8 @@ export async function uiLogin(page: Page, email: string, password: string): Prom
 export async function uiLoginToDashboard(page: Page, email: string, password: string): Promise<void> {
   await uiLogin(page, email, password);
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('مرحبًا');
+  // عنوان اللوحة يختلف حسب الدور (Figma): أي واحد من الأربعة يعني أن اللوحة رُسمت.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(مرحبًا بك، |مساحة إدارة المشاريع$|لوحة إدارة التخصص$|مهامي اليوم$)/);
 }
 
 /** مدير تنفيذي عبر API الحقيقي (من خلال وكيل Vite) لإنشاء بيانات اختبار. */

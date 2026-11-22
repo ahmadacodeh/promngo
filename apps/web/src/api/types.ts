@@ -15,6 +15,9 @@ export type TaskStatus =
   | 'CHANGES_REQUESTED'
   | 'COMPLETED';
 export type CompanyStatus = 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+/** Highest first: the order used by priority sort (desc) and filters. */
+export const PRIORITIES: readonly Priority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 
 export const ROLES: readonly Role[] = ['EXECUTIVE_MANAGER', 'PROJECT_MANAGER', 'SPECIALIZED_MANAGER', 'EMPLOYEE'];
 export const TASK_STATUSES: readonly TaskStatus[] = [
@@ -69,6 +72,11 @@ export interface TaskDto {
   description: string | null;
   status: TaskStatus;
   isRequired: boolean;
+  priority: Priority;
+  /** YYYY-MM-DD or null. */
+  dueDate: string | null;
+  /** Computed by the server (due date passed, not completed, not archived). */
+  isOverdue: boolean;
   specialization: SpecRef | null;
   createdBy: UserRef;
   assignedManager: UserRef | null;
@@ -123,10 +131,15 @@ export interface ProjectDto {
   name: string;
   description: string | null;
   status: ProjectStatus;
+  startDate: string | null;
+  dueDate: string | null;
   createdBy: UserRef;
   createdAt: string;
   updatedAt: string;
   taskCounts: { total: number } & Partial<Record<TaskStatus, number>>;
+  /** Completed / total tasks, 0–100 (server-computed). */
+  progressPct: number;
+  overdueCount: number;
   allowedNextStatuses: ProjectStatus[];
 }
 export interface AttachmentDto {
@@ -232,18 +245,25 @@ export interface UserListQuery extends PageQuery {
 }
 
 /* ---- Projects (§5) ---- */
+export type SortOrder = 'asc' | 'desc';
 export interface ProjectListQuery extends PageQuery {
   status?: ProjectStatus;
   q?: string;
+  sort?: 'updatedAt' | 'createdAt' | 'name' | 'dueDate';
+  order?: SortOrder;
 }
 export interface CreateProjectInput {
   name: string;
   description?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 export interface UpdateProjectInput {
   name?: string;
   description?: string;
   status?: ProjectStatus;
+  startDate?: string | null;
+  dueDate?: string | null;
 }
 
 /* ---- Tasks (§6) ---- */
@@ -255,20 +275,27 @@ export interface CreateTaskInput {
   assignedManagerId?: string | null;
   assignedToId?: string | null;
   reviewerId?: string | null;
+  priority?: Priority;
+  dueDate?: string;
 }
-export type UpdateTaskInput = Partial<CreateTaskInput>;
-export interface ProjectTaskListQuery extends PageQuery {
-  status?: TaskStatus;
-  parentOnly?: boolean;
-  q?: string;
-}
+export type UpdateTaskInput = Partial<Omit<CreateTaskInput, 'dueDate'>> & { dueDate?: string | null };
+export type TaskSort = 'updatedAt' | 'createdAt' | 'dueDate' | 'priority' | 'title' | 'status';
+
 export type TaskScope = 'all' | 'mine' | 'review';
 export interface TaskListQuery extends PageQuery {
   scope?: TaskScope;
-  status?: TaskStatus;
+  /** One or more (sent comma-separated). */
+  status?: TaskStatus | TaskStatus[];
+  priority?: Priority | Priority[];
   projectId?: string;
+  assigneeId?: string;
+  parentOnly?: boolean;
+  overdue?: boolean;
+  needsReview?: boolean;
   q?: string;
   includeArchived?: boolean;
+  sort?: TaskSort;
+  order?: SortOrder;
 }
 export interface TransitionInput {
   to: TaskStatus;
@@ -298,7 +325,12 @@ export interface DashboardResponse {
   role: Role;
   scope: 'COMPANY' | 'PERSONAL';
   projects: { total: number; byStatus: Partial<Record<ProjectStatus, number>> };
-  tasks: { total: number; byStatus: Partial<Record<TaskStatus, number>> };
+  tasks: {
+    total: number;
+    byStatus: Partial<Record<TaskStatus, number>>;
+    byPriority: Partial<Record<Priority, number>>;
+    overdue: number;
+  };
   myOpenTasks: number;
   awaitingMyReview: number;
   flaggedForReview: number;
@@ -413,3 +445,6 @@ export interface ConfirmOrderResponse {
   order: OrderDto;
   subscription: SubscriptionDto;
 }
+
+/** Same filters as GET /tasks (the server reuses ListTasksQuery), scoped to one project. */
+export type ProjectTaskListQuery = Omit<TaskListQuery, 'projectId' | 'scope'>;

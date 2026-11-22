@@ -33,7 +33,8 @@ export function isHttpError(e: unknown): e is HttpError {
 }
 
 export interface RequestOptions {
-  query?: Record<string, string | number | boolean | null | undefined>;
+  /** Arrays are sent comma-separated (the API splits them); empty values are dropped. */
+  query?: Record<string, string | number | boolean | readonly string[] | null | undefined>;
   /** JSON body (object) or FormData (multipart: Content-Type is set by the browser). */
   body?: unknown;
   /** false for public endpoints (login/refresh/logout/health). Default true. */
@@ -61,6 +62,10 @@ export function buildQuery(params?: RequestOptions['query']): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v)) {
+      if (v.length) sp.set(k, v.join(','));
+      continue;
+    }
     sp.set(k, String(v));
   }
   const s = sp.toString();

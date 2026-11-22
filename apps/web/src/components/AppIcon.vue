@@ -18,6 +18,10 @@ const PATHS = {
   search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4',
   plus: 'M12 5v14M5 12h14',
   clock: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2',
+  folder: 'M3 6a1 1 0 011-1h5l2 2h9a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1z',
+  tasks: 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
 } as const;
 export type IconName = keyof typeof PATHS;
 

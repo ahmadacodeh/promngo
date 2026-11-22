@@ -7,7 +7,7 @@ const props = withDefaults(
   defineProps<{
     modelValue: string;
     label: string;
-    type?: 'text' | 'email' | 'password' | 'search';
+    type?: 'text' | 'email' | 'password' | 'search' | 'date';
     error?: string;
     hint?: string;
     autocomplete?: string;

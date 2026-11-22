@@ -17,8 +17,11 @@ export function e2eDatabaseUrl(): string | null {
 /** مستخدمو الاختبارات يحملون هذه البادئة والنطاق حصرًا، فلا يُمَسّ مستخدم البذر. */
 const E2E_USER_EMAIL = String.raw`^e2e-.*@alpha\.test$`;
 
+/** المشاريع التي تنشئها الاختبارات تبدأ أسماؤها بهذه البادئة (لا يُمَسّ مشروع بذر). */
+export const E2E_PROJECT_PREFIX = 'E2E ';
+
 /**
- * يحذف المستخدمين الذين أنشأتهم اختبارات E2E حتى لا تتراكم في قاعدة التطوير (فتزاحم مستخدمي البذر في
+ * يحذف المشاريع ثم المستخدمين الذين أنشأتهم اختبارات E2E حتى لا تتراكم في قاعدة التطوير (فتزاحم مستخدمي البذر في
  * القائمة المرقّمة وتجعل النتائج تعتمد على تاريخ التشغيلات السابقة).
  * أفضل جهد: إن منع حذفَهم قيدٌ (مثل مستخدم نفّذ إجراءً مدقَّقًا) نحذّر ولا نُفشل التشغيل.
  * يعيد عدد المحذوفين، أو null إن لم يُضبط E2E_DATABASE_URL.
@@ -27,6 +30,18 @@ export function cleanupE2eUsers(): number | null {
   const url = e2eDatabaseUrl();
   if (!url) return null;
   try {
+    // المشاريع أولًا (وما يتبعها)، ثم المستخدمون — حتى لا يمنع قيدٌ حذف من أنشأ مشروعًا.
+    const projects = `SELECT id FROM projects WHERE name LIKE '${E2E_PROJECT_PREFIX}%'`;
+    const sql = [
+      'BEGIN',
+      `DELETE FROM audit_events WHERE project_id IN (${projects})`,
+      `DELETE FROM task_dependencies WHERE project_id IN (${projects})`,
+      `DELETE FROM tasks WHERE project_id IN (${projects}) AND parent_task_id IS NOT NULL`,
+      `DELETE FROM tasks WHERE project_id IN (${projects})`,
+      `DELETE FROM projects WHERE name LIKE '${E2E_PROJECT_PREFIX}%'`,
+      'COMMIT',
+    ].join('; ');
+    execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-c', sql], { stdio: 'ignore' });
     const out = execFileSync(
       'psql',
       [url, '-At', '-v', 'ON_ERROR_STOP=1', '-c', `WITH d AS (DELETE FROM users WHERE email ~ '${E2E_USER_EMAIL}' RETURNING 1) SELECT count(*) FROM d`],

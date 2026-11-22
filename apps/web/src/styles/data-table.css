@@ -1,0 +1,26 @@
+/* Shared responsive data table: rows become labelled cards under 860px (no horizontal scroll on phones).
+   Usage: <table class="dt"> with <td data-label="…">; .dt-main = full-width title cell, .dt-acts = actions. */
+.dt-wrap { overflow-x: auto; }
+.dt { inline-size: 100%; border-collapse: collapse; }
+.dt th { text-align: start; font-size: var(--fs-sm); color: var(--muted); font-weight: 700; padding: var(--sp-3) var(--sp-4); border-block-end: 1px solid var(--line); background: var(--canvas); white-space: nowrap; }
+.dt td { padding: var(--sp-3) var(--sp-4); border-block-end: 1px solid var(--row-line); vertical-align: middle; }
+.dt tbody tr:last-child td { border-block-end: 0; }
+.dt tbody tr:hover { background: var(--canvas); }
+.dt-title { color: var(--ink); font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+a.dt-title:hover, a.dt-title:focus-visible { color: var(--emerald-ink); text-decoration: underline; }
+.dt-sub { display: block; color: var(--muted); font-size: var(--fs-xs); margin-block-start: 2px; }
+.dt-badges { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.dt-acts { white-space: nowrap; text-align: end; }
+.dt-num { font-variant-numeric: tabular-nums; }
+.dt-pager { padding: var(--sp-3) var(--sp-4) var(--sp-4); border-block-start: 1px solid var(--line); }
+@media (max-width: 860px) {
+  .dt thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  .dt, .dt tbody, .dt tr, .dt td { display: block; }
+  .dt tr { padding: var(--sp-3) var(--sp-4); border-block-end: 1px solid var(--line); }
+  .dt tbody tr:last-child { border-block-end: 0; }
+  .dt td { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-1) 0; border: 0; }
+  .dt td::before { content: attr(data-label); color: var(--muted); font-size: var(--fs-sm); font-weight: 700; flex: none; }
+  .dt td.dt-main { display: block; padding-block-end: var(--sp-2); }
+  .dt td.dt-main::before, .dt td.dt-acts::before { content: none; }
+  .dt td.dt-acts { justify-content: flex-start; flex-wrap: wrap; padding-block-start: var(--sp-2); }
+}
