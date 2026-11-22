@@ -9,7 +9,7 @@ const CO: CompanyDto = { id: 'c1', name: 'شركة ألفا', slug: 'alpha', sta
 describe('CompanyView', () => {
   it('يعرض البيانات، والحفظ معطّل بلا تغيير، والاسم الفارغ مرفوض محليًا، ثم PATCH بالاسم المقصوص ويُحدّث الجلسة', async () => {
     const patches: unknown[] = [];
-    mockFetch((url, init) => {
+    mockFetch((_url, init) => {
       if (init.method === 'PATCH') {
         const body = JSON.parse(String(init.body));
         patches.push(body);
