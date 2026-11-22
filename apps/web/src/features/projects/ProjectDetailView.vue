@@ -26,6 +26,8 @@ import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/utils/format';
 import { PRIORITY_LABELS, PRIORITY_TONE, projectStatusBadge, taskStatusBadge } from '@/features/work/labels';
 import ProjectFormModal from './ProjectFormModal.vue';
+import TaskFormModal from '@/features/tasks/TaskFormModal.vue';
+import type { TaskDetail } from '@/api/types';
 
 const TRANSITION: Record<ProjectStatus, { label: string; impact: string; tone: 'primary' | 'danger' }> = {
   ACTIVE: { label: 'تفعيل المشروع', impact: 'يصبح المشروع نشطًا ويمكن العمل على مهامه.', tone: 'primary' },
@@ -71,6 +73,13 @@ function onSaved(saved: ProjectDto) {
   editOpen.value = false;
   project.data.value = saved;
   toast.success('حُفظت تعديلات المشروع.');
+}
+
+/* new main task (EXEC/PM, open project; the server re-checks) */
+const taskFormOpen = ref(false);
+function onTaskCreated(t: TaskDetail) {
+  taskFormOpen.value = false;
+  void router.push({ name: 'task-detail', params: { id: t.id } });
 }
 
 /* status transition */
@@ -153,7 +162,10 @@ async function confirmMove() {
       <AppCard :padded="false" class="tasks-card">
         <div class="tasks-head">
           <h2 class="card-title">المهام الرئيسية</h2>
-          <SelectField v-model="priority" label="تصفية بالأولوية" label-hidden :options="priorityOptions" class="prio-filter" />
+          <div class="tasks-tools">
+            <SelectField v-model="priority" label="تصفية بالأولوية" label-hidden :options="priorityOptions" class="prio-filter" />
+            <AppButton v-if="isManager && !closed" size="sm" icon="plus" @click="taskFormOpen = true">مهمة جديدة</AppButton>
+          </div>
         </div>
         <ErrorState v-if="tasks.error.value" class="pad" :error="tasks.error.value" :retrying="tasks.loading.value" @retry="tasks.load" />
         <div v-else-if="!tasks.settled.value" class="pad skel"><SkeletonBlock v-for="i in 3" :key="i" height="44px" /></div>
@@ -179,6 +191,7 @@ async function confirmMove() {
       </AppCard>
     </div>
 
+    <TaskFormModal :open="taskFormOpen" :project-id="p.id" @close="taskFormOpen = false" @saved="onTaskCreated" />
     <ProjectFormModal :open="editOpen" :project="p" @close="editOpen = false" @saved="onSaved" />
     <ConfirmDialog
       :open="!!target"
@@ -220,6 +233,7 @@ dd { margin: 0; font-weight: 600; text-align: end; }
 .tasks-head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4) 0; }
 .tasks-head .card-title { margin: 0; }
 .prio-filter { min-inline-size: 160px; }
+.tasks-tools { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .pad { margin: var(--sp-4); }
 @media (max-width: 1100px) { .panels { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .overview { grid-template-columns: 1fr; } .overview__progress { text-align: start; } .tasks-head { flex-wrap: wrap; } }

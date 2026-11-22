@@ -8,6 +8,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
 import { projectsApi, tasksApi } from '@/api/endpoints';
 import { PRIORITIES, TASK_STATUSES, type Priority, type TaskListItem, type TaskListQuery, type TaskScope, type TaskStatus } from '@/api/types';
+import AppButton from '@/components/AppButton.vue';
 import AppCard from '@/components/AppCard.vue';
 import CheckboxField from '@/components/CheckboxField.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -24,6 +25,8 @@ import { TASK_STATUS_LABELS } from '@/i18n/ar';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/utils/format';
 import { PRIORITY_LABELS, PRIORITY_TONE, taskStatusBadge } from '@/features/work/labels';
+import type { TaskDetail } from '@/api/types';
+import TaskFormModal from './TaskFormModal.vue';
 
 const PAGE_SIZE = 20;
 const SORTS = {
@@ -116,11 +119,21 @@ function resetFilters() {
   overdue.value = false;
 }
 const taskLink = (id: string) => (router.hasRoute('task-detail') ? { name: 'task-detail', params: { id } } : null);
+// Main tasks are created by EXEC/PM only (contract §6); the server re-checks the role.
+const canCreateTask = computed(() => auth.role === 'EXECUTIVE_MANAGER' || auth.role === 'PROJECT_MANAGER');
+const createOpen = ref(false);
+function onCreated(t: TaskDetail) {
+  createOpen.value = false;
+  void router.push({ name: 'task-detail', params: { id: t.id } });
+}
 const owner = (t: TaskListItem) => t.assignedTo?.fullName ?? t.assignedManager?.fullName ?? 'غير مسندة';
 </script>
 
 <template>
-  <PageHeader title="إدارة المهام" subtitle="تابع المهام حسب الحالة والمسؤول والأولوية." />
+  <PageHeader title="إدارة المهام" subtitle="تابع المهام حسب الحالة والمسؤول والأولوية.">
+    <AppButton v-if="canCreateTask" icon="plus" @click="createOpen = true">مهمة جديدة</AppButton>
+  </PageHeader>
+  <TaskFormModal :open="createOpen" @close="createOpen = false" @saved="onCreated" />
 
   <div class="tabs" role="group" aria-label="نطاق المهام">
     <button
