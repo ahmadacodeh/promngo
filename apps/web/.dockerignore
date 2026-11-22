@@ -1,0 +1,11 @@
+node_modules
+dist
+storage
+.env
+.env.*
+!.env.example
+.tmp
+coverage
+*.log
+test-results
+playwright-report

@@ -21,6 +21,7 @@
     "migration:show": "node dist/database/migrate.js show",
     "migration:create": "node scripts/new-migration.mjs",
     "seed:dev": "node dist/database/seed/seed-dev.js",
+    "company:create": "node dist/database/ops/company-create.js",
     "mutation:b2": "node scripts/mutation-b2.mjs",
     "verify": "npm run typecheck && npm run lint && npm test && npm run test:e2e"
   },

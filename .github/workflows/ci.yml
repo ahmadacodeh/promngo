@@ -1,0 +1,148 @@
+# PROMANGO CI: كل دفع وكل طلب دمج يمر بالخادم والواجهة وE2E على PostgreSQL حقيقي وبناء صور Docker.
+# لا أسرار مخزّنة: أسرار JWT وكلمة مرور بيانات التطوير تُولَّد عشوائيًا لكل تشغيل وتُخفى من السجل.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  api:
+    name: الخادم (typecheck + lint + وحدة + E2E)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: promango
+          POSTGRES_PASSWORD: promango-ci
+          POSTGRES_DB: promango_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U promango" --health-interval 5s --health-timeout 5s --health-retries 20
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: أسرار مؤقتة لهذا التشغيل
+        run: |
+          for k in JWT_ACCESS_SECRET JWT_REFRESH_SECRET BILLING_ENCRYPTION_KEY; do
+            v=$(openssl rand -hex 32); echo "::add-mask::$v"; echo "$k=$v" >> "$GITHUB_ENV"
+          done
+          echo "DATABASE_URL=postgresql://promango:promango-ci@localhost:5432/promango_dev" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=postgresql://promango:promango-ci@localhost:5432/promango_test" >> "$GITHUB_ENV"
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+
+  web:
+    name: الواجهة (typecheck + lint + وحدة + بناء)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+
+  e2e:
+    name: E2E المتصفح (Playwright على API حقيقي)
+    needs: [api, web]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: promango
+          POSTGRES_PASSWORD: promango-ci
+          POSTGRES_DB: promango_dev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U promango" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: أسرار مؤقتة
+        run: |
+          for k in JWT_ACCESS_SECRET JWT_REFRESH_SECRET BILLING_ENCRYPTION_KEY; do
+            v=$(openssl rand -hex 32); echo "::add-mask::$v"; echo "$k=$v" >> "$GITHUB_ENV"
+          done
+          pw="Ci-$(openssl rand -hex 12)"; echo "::add-mask::$pw"; echo "SEED_PASSWORD=$pw" >> "$GITHUB_ENV"
+          echo "DATABASE_URL=postgresql://promango:promango-ci@localhost:5432/promango_dev" >> "$GITHUB_ENV"
+          echo "E2E_DATABASE_URL=postgresql://promango:promango-ci@localhost:5432/promango_dev" >> "$GITHUB_ENV"
+      - name: تشغيل الخادم (migrations + seed + start)
+        working-directory: apps/api
+        env:
+          NODE_ENV: development
+          WEB_ORIGIN: http://127.0.0.1:5173
+          UPLOAD_DIR: ${{ runner.temp }}/uploads
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run migration:run
+          npm run seed:dev -- --reset
+          nohup node dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/health && break; sleep 1; done
+      - name: Playwright
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - name: سجل الخادم عند الفشل
+        if: failure()
+        run: tail -200 "$RUNNER_TEMP/api.log" || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: apps/web/test-results
+          retention-days: 7
+
+  docker:
+    name: بناء صور الإنتاج والتحقق من Caddyfile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t promango-api:ci apps/api
+      - run: docker build -t promango-web:ci apps/web
+      - name: صياغة Caddyfile
+        run: docker run --rm -e PROMANGO_DOMAIN=localhost -e ACME_EMAIL=ci@example.com promango-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: صياغة docker compose
+        working-directory: deploy
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.prod.yml config --quiet
+      - name: الصورة لا تحوي أسرارًا أو .env
+        run: |
+          ! docker run --rm --entrypoint sh promango-api:ci -c 'ls -a /app' | grep -E '^\.env$'
+          docker run --rm --entrypoint id promango-api:ci | grep -v 'uid=0'
