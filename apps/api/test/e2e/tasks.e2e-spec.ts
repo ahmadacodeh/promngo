@@ -53,6 +53,32 @@ describe('إنشاء المهام', () => {
     expect(res.body.isOverdue).toBe(true);
   });
 
+  it('isOverdue: أمس متأخرة، واليوم نفسه وغدًا لا (الحد < وليس <=)', async () => {
+    const task = await f.task(projectId);
+    const overdue = async (): Promise<boolean> => (await f.api.pm.get(`/tasks/${task.id}`)).body.isOverdue;
+    // التواريخ نسبية إلى CURRENT_DATE في القاعدة نفسها (نفس مرجع الخادم) فلا يتأثر الاختبار بالمنطقة الزمنية.
+    for (const [expr, expected] of [['CURRENT_DATE - 1', true], ['CURRENT_DATE', false], ['CURRENT_DATE + 1', false]] as const) {
+      await q(`UPDATE tasks SET due_date = ${expr} WHERE id = $1`, [task.id]);
+      expect(await overdue(), expr).toBe(expected);
+    }
+  });
+
+  it('isOverdue: المكتملة والمؤرشفة لا تُعدّ متأخرة ولو فات موعدها، والفلتر overdue=true يطابق العمود', async () => {
+    const open = await f.task(projectId, { title: 'مفتوحة' });
+    const done = await f.task(projectId, { title: 'مكتملة' });
+    const archived = await f.task(projectId, { title: 'مؤرشفة' });
+    await q(`UPDATE tasks SET due_date = CURRENT_DATE - 3 WHERE id = ANY($1)`, [[open.id, done.id, archived.id]]);
+    const get = async (id: string) => (await f.api.pm.get(`/tasks/${id}`)).body.isOverdue;
+    expect(await get(open.id)).toBe(true);
+    expect(await get(done.id)).toBe(true); // قبل الإكمال متأخرة
+    await q(`UPDATE tasks SET status = 'COMPLETED' WHERE id = $1`, [done.id]);
+    await q(`UPDATE tasks SET archived_at = NOW() WHERE id = $1`, [archived.id]);
+    expect(await get(done.id)).toBe(false);
+    expect(await get(archived.id)).toBe(false);
+    expect(ids(await f.api.pm.get('/tasks?overdue=true'))).toEqual([open.id]);
+    expect(ids(await f.api.pm.get('/tasks?overdue=true&includeArchived=true'))).toEqual([open.id]); // المؤرشفة لا تتسرب عبر الفلتر
+  });
+
   it.each(['sm1', 'e1'] as const)('الدور %s لا ينشئ مهمة رئيسية (403)', async (k) => {
     expect((await f.api[k].post(`/projects/${projectId}/tasks`, { title: 'x' })).status).toBe(403);
   });
@@ -411,6 +437,19 @@ describe('المهام الفرعية', () => {
     const detail = (await f.api.pm.get(`/tasks/${parent.id}`)).body;
     expect(detail.subtasks).toHaveLength(2);
     expect((await f.api.pm.get(`/tasks/${byPm.body.id}`)).body.parent).toEqual({ id: parent.id, title: parent.title });
+  });
+
+  it('أرشفة الفرعية وحذفها في مشروع مغلق ← PROJECT_CLOSED ولا يتغير شيء', async () => {
+    const parent = await f.task(projectId);
+    const sub = (await f.api.pm.post(`/projects/${projectId}/tasks/${parent.id}/subtasks`, { title: 'فرعية' })).body;
+    expect((await f.api.pm.patch(`/projects/${projectId}`, { status: 'CANCELLED' })).status).toBe(200);
+    for (const res of [await f.api.pm.post(`/tasks/${sub.id}/archive`), await f.api.pm.del(`/tasks/${sub.id}`)]) {
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe('PROJECT_CLOSED');
+    }
+    const rows = await q<{ archived_at: Date | null }>(`SELECT archived_at FROM tasks WHERE id = $1`, [sub.id]);
+    expect(rows).toHaveLength(1); // لم تُحذف
+    expect(rows[0]!.archived_at).toBeNull(); // ولم تُؤرشف
   });
 
   it('العمق مستوى واحد (SUBTASK_DEPTH) ولا فرعية لمهمة مكتملة', async () => {

@@ -89,6 +89,17 @@ describe('POST /tasks/:id/submit — النجاح', () => {
     expect(res.body.submission.note).toBeNull();
   });
 
+  it('المرفقات تحفظ ترتيب الرفع: طوابع created_at متمايزة (clock_timestamp لا NOW) والعرض بترتيب الرفع', async () => {
+    const task = await f.startedTask(projectId);
+    const names = ['أ.pdf', 'ب.pdf', 'ج.pdf', 'د.pdf', 'هـ.pdf'];
+    const res = await submit(f.api.e1, task.id, names.map((n, i) => att(n, pdf(String(i)))));
+    expect(res.status).toBe(201);
+    expect(res.body.submission.attachments.map((a: { fileName: string }) => a.fileName)).toEqual(names);
+    // ::text يحفظ دقة الميكروثانية؛ NOW() كان سيعطي طابعًا واحدًا لكل الملفات (والترتيب يُحسم عندها بـ uuid عشوائي).
+    const stamps = (await q<{ c: string }>(`SELECT created_at::text AS c FROM task_attachments WHERE task_id = $1`, [task.id])).map((r) => r.c);
+    expect(new Set(stamps).size).toBe(names.length);
+  });
+
   it('اسم الملف: العربية تبقى سليمة، والمسارات تُجرَّد (../../x.pdf ← x.pdf)', async () => {
     const task = await f.startedTask(projectId);
     const res = await submit(f.api.e1, task.id, [att('../../etc/خطة العمل.pdf')]);
@@ -441,6 +452,20 @@ describe('POST /tasks/:id/reviews', () => {
     expect((await review(f.api.sm1, pred.task.id, { decision: 'CHANGES_REQUESTED', comments: 'أعد الصياغة' })).status).toBe(201);
     expect((await f.api.pm.get(`/tasks/${succ.id}`)).body.needsReview).toBe(true);
     expect(await auditTypes(`task_id = $1 AND type = 'DEPENDENCY_PREDECESSOR_CHANGED'`, [succ.id])).toHaveLength(1);
+  });
+
+  it('طلب التعديل على سابقة لا يعلّم اللاحقات غير المبدوءة (ASSIGNED/PLANNED) ولا يسجّل لها حدثًا', async () => {
+    const pred = await underReview({ title: 'سابقة' });
+    const assigned = await f.assignedTask(projectId, { title: 'لاحقة مُسنَدة' });
+    const planned = await f.task(projectId, { title: 'لاحقة مخطّطة' });
+    for (const succ of [assigned, planned]) {
+      await q(`INSERT INTO task_dependencies (company_id, project_id, predecessor_task_id, successor_task_id, created_by) VALUES ($1, $2, $3, $4, $5)`, [f.company.id, projectId, pred.task.id, succ.id, f.users.pm.id]);
+    }
+    expect((await review(f.api.sm1, pred.task.id, { decision: 'CHANGES_REQUESTED', comments: 'أعد الصياغة' })).status).toBe(201);
+    for (const succ of [assigned, planned]) {
+      expect((await f.api.pm.get(`/tasks/${succ.id}`)).body.needsReview, succ.title).toBe(false);
+      expect(await auditTypes(`task_id = $1 AND type = 'DEPENDENCY_PREDECESSOR_CHANGED'`, [succ.id])).toHaveLength(0);
+    }
   });
 
   it('الموافقة تحرّر اللاحقة غير المبدوءة', async () => {

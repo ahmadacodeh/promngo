@@ -15,6 +15,7 @@ import {
 } from '../work/model.js';
 import { canSeeTask, isAssignedManager, taskCapabilities, type TaskCan } from '../work/policy.js';
 import {
+  IS_OVERDUE_SQL,
   SUBTASK_COUNT_COLUMNS,
   TASK_COLUMNS,
   TASK_FROM,
@@ -112,7 +113,7 @@ export class TasksService {
     if (q.priority?.length) where.push(`t.priority = ANY($${params.push(q.priority)})`);
     if (q.assigneeId) where.push(`t.assigned_to = $${params.push(q.assigneeId)}`);
     if (q.parentOnly) where.push('t.parent_task_id IS NULL');
-    if (q.overdue) where.push(`t.due_date < CURRENT_DATE AND t.status <> 'COMPLETED'`);
+    if (q.overdue) where.push(IS_OVERDUE_SQL);
     if (q.needsReview !== undefined) where.push(`t.needs_review = $${params.push(q.needsReview)}`);
     if (q.q?.trim()) where.push(`t.title ILIKE $${params.push(`%${escapeLike(q.q.trim())}%`)} ESCAPE '\\'`);
     const w = where.join(' AND ');

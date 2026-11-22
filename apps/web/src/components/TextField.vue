@@ -26,7 +26,8 @@ const id = useId();
 const revealed = ref(false);
 const isPassword = computed(() => props.type === 'password');
 const inputType = computed(() => (isPassword.value && revealed.value ? 'text' : props.type));
-const describedBy = computed(() => [props.error ? `${id}-err` : '', props.hint ? `${id}-hint` : ''].filter(Boolean).join(' ') || undefined);
+// The hint is not rendered while an error is shown, so it must not be referenced then (dangling id).
+const describedBy = computed(() => (props.error ? `${id}-err` : props.hint ? `${id}-hint` : undefined));
 </script>
 
 <template>

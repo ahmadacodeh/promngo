@@ -37,10 +37,16 @@ export interface TaskListItem extends TaskDto {
   completedSubtaskCount: number;
 }
 
+/**
+ * «متأخرة»: لها تاريخ استحقاق مضى (اليوم نفسه ليس تأخرًا)، وليست مكتملة ولا مؤرشفة. مصدر واحد للعمود وللفلتر
+ * `overdue=true` حتى لا يختلفا (المؤرشفة كانت تظهر في الفلتر ولا يظهر عمودها متأخرًا).
+ */
+export const IS_OVERDUE_SQL = `(t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE AND t.status <> 'COMPLETED' AND t.archived_at IS NULL)`;
+
 /** كل ما تحتاجه خريطة TaskDto + قرار الصلاحيات في استعلام واحد. */
 export const TASK_COLUMNS = `t.id, t.company_id, t.project_id, t.parent_task_id, t.title, t.description, t.status, t.is_required, t.priority,
   to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
-  (t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE AND t.status <> 'COMPLETED' AND t.archived_at IS NULL) AS is_overdue,
+  ${IS_OVERDUE_SQL} AS is_overdue,
   t.needs_review, t.archived_at, t.created_at, t.updated_at,
   t.created_by, t.assigned_manager_id, t.assigned_to, t.reviewer_id, t.specialization_id,
   sp.name AS sp_name,
