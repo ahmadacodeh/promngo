@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # PROMANGO API — صورة إنتاج متعددة المراحل. لا أسرار داخل الصورة: كلها من متغيرات البيئة وقت التشغيل.
-FROM node:22.11.0-bookworm-slim AS build
+FROM node:22.23.4-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -8,7 +8,7 @@ COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:22.11.0-bookworm-slim AS runtime
+FROM node:22.23.4-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     PORT=3000 \
     UPLOAD_DIR=/data/uploads
